@@ -9,10 +9,10 @@
 #define MAX_MSG_LEN 10000
 
 // -- Variáveis de Chaves Globais (Usadas para comunicação entre as funções) --
-int p_a = 0;
-int q_a = 0;
-int e_rsa = 0;
-int d_rsa = 0;
+long long int p_a = 0;
+long long int q_a = 0;
+long long int e_rsa = 0;
+long long int d_rsa = 0;
 
 // -- Funções básicas -- //
 int ehPrimo(int N){
@@ -93,8 +93,8 @@ int Non_trivial_factor_for_RSA(){
     p_a = N1;
     q_a = N2;
 
-    printf("\nValor de p é: %d.\n", p_a);
-    printf("O valor de q é: %d.\n", q_a);
+    printf("\nValor de p é: %lld.\n", p_a);
+    printf("O valor de q é: %lld.\n", q_a);
     // Para fins de geração de chaves, o usuário deve inserir p e q PRIMOS.
     // Vamos pedir p e q na Key_RSA para garantir que são primos.
     return 1;
@@ -299,11 +299,12 @@ int main(){
     }
     s[i] = '\0'; 
     printf("Mensagem a ser usada: \"%s\"\n", s);
-    Criptografia(s, &N_rsa, &e_rsa);
+    int tamanho_array; // Variable to store the size of the output array
+    Criptografia(s, array_cifrado, &tamanho_array);
     
     // 3.2 Descriptografia (Decodificação)
     // A função fará o cálculo M = C^D mod N e a reconversão numérica em texto.
-    Descriptografia_RSA(array_cifrado, i, N_rsa, d_rsa);
+    Descriptografia_RSA(array_cifrado, tamanho_array, N_rsa, d_rsa);
     
     return 0;
 }
