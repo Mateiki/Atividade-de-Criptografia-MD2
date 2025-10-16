@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-
+#include <time.h>
 // Cabeçalho do código com informações do aluno e da atividade
 /*
     Alunos: Matheus Eiki Kimura, João Pedro Morais Da Cunha
@@ -14,6 +14,11 @@
 typedef long long lli;
 
 // --- Funções Auxiliares ---
+
+// Função auxiliar para Pollard Rho: g(x) = (x^2 + 1) mod N
+lli pollard_g(lli val, lli mod) {
+    return ((val * val) % mod + 1) % mod;
+}
 
 // 1. Algoritmo de Euclides para MDC
 lli gcd(lli a, lli b) {
@@ -65,56 +70,40 @@ lli modInverse(lli a, lli m) {
 // Verifica se um número é primo (Simplificado, para verificar Fermat)
 int is_prime(lli n) {
     if (n <= 1) return 0;
-    for (lli i = 2; i * i <= n; i++) {
+    if (n == 2) return 1;
+    if (n % 2 == 0) return 0;
+    for (lli i = 3; i * i <= n; i += 2) {
         if (n % i == 0) return 0;
     }
     return 1;
 }
 
-// 3. Exponenciação Modular Otimizada com Teoremas
+// Função auxiliar silenciosa para verificar MDC sem prints
+lli gcd_silent(lli a, lli b) {
+    while (b != 0) {
+        lli resto = a % b;
+        a = b;
+        b = resto;
+    }
+    return a;
+}
+
+// Exponenciação Modular sem redução de expoente (corrigido)
 lli power(lli base, lli exp, lli mod, lli z_n) {
-    lli new_exp = exp;
-    char* theorem_applied = "Teorema da Divisão Euclidiana (default)";
-
     printf("\n  [Exponenciacao Modular] Calculando (%lld)^%lld mod %lld\n", base, exp, mod);
-
-    // 1. Pequeno Teorema de Fermat
-    if (is_prime(mod)) {
-        if (base % mod != 0) {
-            new_exp = exp % (mod - 1);
-            theorem_applied = "Pequeno Teorema de Fermat";
-        }
-    } 
-    // 2. Teorema de Euler
-    else if (gcd(base, mod) == 1) {
-        new_exp = exp % z_n;
-        theorem_applied = "Teorema de Euler (mdc(base, mod)=1)";
-    }
-    
-    // Se nenhum dos anteriores se aplicar, ou for o caso geral (D/E),
-    // a redução do expoente é feita via Divisão Euclidiana (modulo z_n)
-    if (strcmp(theorem_applied, "Teorema da Divisão Euclidiana (default)") == 0 && mod != z_n) {
-        new_exp = exp % z_n;
-    }
-    
-    printf("  [Exponenciacao Modular] Teorema Aplicado: %s\n", theorem_applied);
-    
-    if (new_exp != exp) {
-        printf("  [Exponenciacao Modular] Expoente reduzido: %lld mod %lld = %lld\n", exp, (mod == z_n ? z_n : z_n), new_exp);
-    }
 
     lli res = 1;
     base %= mod;
     
     if (base == 0) return 0;
 
-    // Loop de Exponenciação Rápida
-    while (new_exp > 0) {
-        if (new_exp & 1) { // Verifica se o bit menos significativo é 1
+    // Loop de Exponenciação Rápida (Exponenciação Binária)
+    while (exp > 0) {
+        if (exp & 1) { // Verifica se o bit menos significativo é 1
             res = (res * base) % mod;
         }
         base = (base * base) % mod;
-        new_exp >>= 1;
+        exp >>= 1;
     }
 
     return res;
@@ -131,57 +120,90 @@ lli pollard_rho(lli N) {
     }
     if (N % 2 == 0) return 2; 
 
-    // Semente x0 = 2
     lli x = 2; 
     lli y = 2; 
     lli d = 1;
 
-    // Função de iteração: g(x) = (x^2 + 1) mod N
-    lli g(lli val, lli mod) {
-        return (val * val + 1) % mod;
-    }
-
     int iter_count = 0;
-    // Laço para encontrar o fator
-    while (1) {
+    int max_iterations = 100000; // Prevenir loop infinito
+    
+    while (iter_count < max_iterations) {
         iter_count++;
-        // x1 avança um passo
-        x = g(x, N);
-        // x2 avança dois passos
-        y = g(g(y, N), N);
+        x = pollard_g(x, N);
+        y = pollard_g(pollard_g(y, N), N);
         
-        // Calculo de d = mdc(|x - y|, N)
-        lli diff = abs(x - y);
-        d = gcd(diff, N); // Usa a função gcd com passo a passo
+        lli diff = (x > y) ? (x - y) : (y - x);
+        d = gcd(diff, N);
 
         printf("  [Pollard Rho - Iteracao %d] x=%lld, y=%lld, |x-y|=%lld, mdc=%lld\n", iter_count, x, y, diff, d);
 
         if (d == N) {
-            // Se d=N, a iteração falhou ou o N é primo (improvável após verificação inicial).
-            // Em implementações reais, recomeçaríamos com sementes diferentes.
             printf("  [Pollard Rho] Falha temporaria. Tentando nova semente.\n");
-            x = rand() % (N - 2) + 2; 
+            x = (rand() % (N - 2)) + 2; 
             y = x;
             d = 1;
+            iter_count = 0;
         } else if (d != 1) {
             printf("  [Pollard Rho] Fator encontrado: %lld\n", d);
-            return d; // Fator não trivial
+            return d;
         }
+    }
+    
+    printf("  [Pollard Rho] ERRO: Numero maximo de iteracoes atingido.\n");
+    return N;
+}
+
+// Fatoração recursiva para garantir primos
+void factorar_primos(lli N, lli *p, lli *q) {
+    if (is_prime(N)) {
+        *p = N;
+        *q = 1;
+        return;
+    }
+
+    lli fator = pollard_rho(N);
+
+    if (fator == N) {
+        *p = N;
+        *q = 1;
+        return;
+    }
+
+    lli outro_fator = N / fator;
+
+    if (is_prime(fator) && is_prime(outro_fator)) {
+        *p = fator;
+        *q = outro_fator;
+        return;
+    }
+
+    if (!is_prime(fator)) {
+        factorar_primos(fator, p, q);
+    } else {
+        *p = fator;
+    }
+
+    if (!is_prime(outro_fator)) {
+        lli p2, q2;
+        factorar_primos(outro_fator, &p2, &q2);
+        if (*q == 1) *q = p2;
+    } else {
+        if (*q == 1) *q = outro_fator;
     }
 }
 
 // Mapeamento Letra -> Número (A=11, B=12, ..., Z=36, Espaço=00)
 int char_to_num(char c) {
-    if (c == ' ') return 0; // Espaço = 00
+    if (c == ' ') return 0;
     if (c >= 'A' && c <= 'Z') return 11 + (c - 'A');
-    return -1; // Caractere não mapeado
+    return -1;
 }
 
 // Mapeamento Número -> Letra
 char num_to_char(int n) {
     if (n == 0) return ' ';
     if (n >= 11 && n <= 36) return (char)('A' + (n - 11));
-    return '?'; 
+    return '?';
 }
 
 // Função Principal do Sistema RSA
@@ -199,12 +221,20 @@ void run_rsa_system() {
     printf("  Projeto RSA com Pollard Rho e Teoremas Modulares (MD2)\n");
     printf("==========================================================\n");
 
-    // Etapa 1.1: Entrada de dados e validação
     do {
         printf("Insira N1 (3 ou 4 digitos, produto de primos distintos): ");
-        scanf("%lld", &N1);
+        if (scanf("%lld", &N1) != 1) {
+            printf("Entrada invalida!\n");
+            while(getchar() != '\n');
+            continue;
+        }
+        
         printf("Insira N2 (3 ou 4 digitos, produto de primos distintos, diferente de N1): ");
-        scanf("%lld", &N2);
+        if (scanf("%lld", &N2) != 1) {
+            printf("Entrada invalida!\n");
+            while(getchar() != '\n');
+            continue;
+        }
 
         if ((N1 < 100 || N1 > 9999) || (N2 < 100 || N2 > 9999) || N1 == N2) {
             printf("Erro: N1 e N2 devem ter 3 ou 4 digitos e ser distintos. Tente novamente.\n");
@@ -212,40 +242,52 @@ void run_rsa_system() {
             break;
         }
     } while (1);
-    
-    // Etapa 1.2: Fatoração
-    lli p1 = pollard_rho(N1);
-    lli p2 = pollard_rho(N2);
 
-    // Definição dos primos RSA: p=fator de N1, q=fator de N2
-    p = p1; 
-    q = p2; 
-    
+    lli p1, q1, p2, q2;
+
+    factorar_primos(N1, &p1, &q1);
+    if (q1 == 1) {
+        printf("\nERRO: N1 nao fatorado em dois primos distintos. Use um N1 que seja produto de primos distintos.\n");
+        return;
+    }
+
+    factorar_primos(N2, &p2, &q2);
+    if (q2 == 1) {
+        printf("\nERRO: N2 nao fatorado em dois primos distintos. Use um N2 que seja produto de primos distintos.\n");
+        return;
+    }
+
+    p = p1;
+    q = p2;
+
     printf("\n==========================================================\n");
     printf("  Fatores Primos RSA Definidos\n");
     printf("==========================================================\n");
     printf("  Primo p (fator de N1): %lld\n", p);
     printf("  Primo q (fator de N2): %lld\n", q);
-    
-    // Etapa 2: Geração de Chaves RSA
-    n = p * q; // Modulo RSA 
-    z = (p - 1) * (q - 1); // Totiente de Euler z(n)
+
+    n = p * q;
+    z = (p - 1) * (q - 1);
 
     printf("\n--- Etapa 2: Geracao das Chaves RSA ---\n");
     printf("  Modulo n = p * q: %lld\n", n);
     printf("  Totiente z(n) = (p-1)*(q-1): %lld\n", z);
 
-    // Escolha do Expoente Público E
     printf("  [Escolha de E] Buscando o menor E > 1 tal que mdc(E, z) == 1.\n");
-    for (E = 2; E < n; E++) {
+    for (E = 2; E < z; E++) {
         if (gcd(E, z) == 1) { 
             break;
         }
     }
     printf("  Expoente Publico E: %lld\n", E);
 
-    // Cálculo do Expoente Privado D
     D = modInverse(E, z); 
+
+    lli verification = (E * D) % z;
+    printf("\n  [Verificacao] E * D mod z(n) = (%lld * %lld) mod %lld = %lld\n", E, D, z, verification);
+    if (verification != 1) {
+        printf("  [ERRO] A relacao E * D mod z(n) = 1 nao foi satisfeita!\n");
+    } 
 
     printf("\n==========================================================\n");
     printf("  Chaves Geradas\n");
@@ -253,12 +295,10 @@ void run_rsa_system() {
     printf("  Chave Publica (n, E): (%lld, %lld)\n", n, E);
     printf("  Chave Privada (n, D): (%lld, %lld)\n", n, D);
 
-    // Etapa 3: Codificação e Decodificação
     printf("\n--- Etapa 3: Criptografia e Descriptografia ---\n");
     printf("Insira a mensagem (APENAS MAIUSCULAS e ESPACOS, max 99 chars): ");
     scanf(" %[^\n]", original_message);
 
-    // 3.1 Pré-Codificação
     printf("\n  [Pre-Codificacao] Mensagem em blocos de 2 digitos (A=11, Espaco=00):\n");
     for (int i = 0; original_message[i] != '\0'; i++) {
         char c = original_message[i];
@@ -274,29 +314,27 @@ void run_rsa_system() {
         return;
     }
 
-    // 3.2 Codificação (Criptografia)
     printf("\n  [Codificacao] C = M^E mod n (Passo a passo)\n");
     for (int i = 0; i < num_blocks; i++) {
         lli M = numeric_blocks[i];
         printf("\n  Bloco M=%lld. Criptografando...\n", M);
-        // Usa a função power com seleção de teorema
         lli C = power(M, E, n, z); 
         encrypted_blocks[i] = C;
         printf("  Bloco Cifrado C: %lld\n", C);
     }
-
-    // 3.3 Decodificação (Descriptografia)
+   
     printf("\n  [Decodificacao] M = C^D mod n (Passo a passo)\n");
     for (int i = 0; i < num_blocks; i++) {
         lli C = encrypted_blocks[i];
         printf("\n  Bloco C=%lld. Descriptografando...\n", C);
-        // Usa a função power com seleção de teorema
         lli M = power(C, D, n, z); 
         decrypted_blocks[i] = M;
         printf("  Bloco Decifrado M: %lld\n", M);
+        if (M > 36) {
+            printf("  [AVISO] Valor decifrado (%lld) fora do range esperado (0-36)\n", M);
+        }
     }
 
-    // 3.4 Reconversão numérica em texto
     char decrypted_message[100];
     printf("\n  [Reconversao] Blocos numericos para Texto Original:\n");
     for (int i = 0; i < num_blocks; i++) {
@@ -311,7 +349,6 @@ void run_rsa_system() {
     printf("Mensagem Original: %s\n", original_message);
     printf("Mensagem Decifrada: %s\n", decrypted_message);
 
-    // 3.5 Confirmação
     if (strcmp(decrypted_message, original_message) == 0) {
         printf("CONFIRMADO: A mensagem decifrada e identica a original.\n");
     } else {
@@ -320,8 +357,7 @@ void run_rsa_system() {
 }
 
 int main() {
-    printf("Codigo feito por:\n Matheus Eiki Kimura - 241025327\n Joao Pedro Morais Da Cunha - 241011161\n");
-    // Inicializa o gerador de números para a função rand() usada no Pollard Rho
+    printf("Codigo feito por:\n Matheus Eiki Kimura - 241025327\n Joao Pedro Morais Da Cunha - 241011161\n\n");
     srand(time(NULL)); 
     run_rsa_system();
     return 0;
