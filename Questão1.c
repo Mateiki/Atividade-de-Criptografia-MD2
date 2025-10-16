@@ -97,13 +97,12 @@ lli power(lli base, lli exp, lli mod, lli z_n) {
         new_exp = exp % z_n;
     }
     
-    printf("  [Exponenciacao Modular] Teorema Aplicado: %s\n", theorem_applied); [cite: 64]
+    printf("  [Exponenciacao Modular] Teorema Aplicado: %s\n", theorem_applied);
     
     if (new_exp != exp) {
-        printf("  [Exponenciacao Modular] Expoente reduzido: %lld mod %lld = %lld\n", exp, (mod == z_n ? z_n : z_n), new_exp); [cite: 64]
+        printf("  [Exponenciacao Modular] Expoente reduzido: %lld mod %lld = %lld\n", exp, (mod == z_n ? z_n : z_n), new_exp);
     }
 
-    // Exponenciação por Quadrados (Método eficiente)
     lli res = 1;
     base %= mod;
     
@@ -113,10 +112,8 @@ lli power(lli base, lli exp, lli mod, lli z_n) {
     while (new_exp > 0) {
         if (new_exp & 1) { // Verifica se o bit menos significativo é 1
             res = (res * base) % mod;
-            // printf("    * Passo (bit 1): res = (%lld * %lld) mod %lld = %lld\n", res, base, mod, res);
         }
         base = (base * base) % mod;
-        // printf("    * Passo (quadrado): base = (%lld * %lld) mod %lld = %lld\n", base, base, mod, base);
         new_exp >>= 1;
     }
 
@@ -157,7 +154,7 @@ lli pollard_rho(lli N) {
         lli diff = abs(x - y);
         d = gcd(diff, N); // Usa a função gcd com passo a passo
 
-        printf("  [Pollard Rho - Iteracao %d] x=%lld, y=%lld, |x-y|=%lld, mdc=%lld\n", iter_count, x, y, diff, d); [cite: 31]
+        printf("  [Pollard Rho - Iteracao %d] x=%lld, y=%lld, |x-y|=%lld, mdc=%lld\n", iter_count, x, y, diff, d);
 
         if (d == N) {
             // Se d=N, a iteração falhou ou o N é primo (improvável após verificação inicial).
@@ -210,7 +207,7 @@ void run_rsa_system() {
         scanf("%lld", &N2);
 
         if ((N1 < 100 || N1 > 9999) || (N2 < 100 || N2 > 9999) || N1 == N2) {
-            printf("Erro: N1 e N2 devem ter 3 ou 4 digitos e ser distintos. Tente novamente.\n"); [cite: 25]
+            printf("Erro: N1 e N2 devem ter 3 ou 4 digitos e ser distintos. Tente novamente.\n");
         } else {
             break;
         }
@@ -227,8 +224,8 @@ void run_rsa_system() {
     printf("\n==========================================================\n");
     printf("  Fatores Primos RSA Definidos\n");
     printf("==========================================================\n");
-    printf("  Primo p (fator de N1): %lld\n", p); [cite: 35]
-    printf("  Primo q (fator de N2): %lld\n", q); [cite: 35]
+    printf("  Primo p (fator de N1): %lld\n", p);
+    printf("  Primo q (fator de N2): %lld\n", q);
     
     // Etapa 2: Geração de Chaves RSA
     n = p * q; // Modulo RSA 
@@ -253,8 +250,8 @@ void run_rsa_system() {
     printf("\n==========================================================\n");
     printf("  Chaves Geradas\n");
     printf("==========================================================\n");
-    printf("  Chave Publica (n, E): (%lld, %lld)\n", n, E); [cite: 45]
-    printf("  Chave Privada (n, D): (%lld, %lld)\n", n, D); [cite: 46]
+    printf("  Chave Publica (n, E): (%lld, %lld)\n", n, E);
+    printf("  Chave Privada (n, D): (%lld, %lld)\n", n, D);
 
     // Etapa 3: Codificação e Decodificação
     printf("\n--- Etapa 3: Criptografia e Descriptografia ---\n");
@@ -278,7 +275,7 @@ void run_rsa_system() {
     }
 
     // 3.2 Codificação (Criptografia)
-    printf("\n  [Codificacao] C = M^E mod n (Passo a passo)\n"); [cite: 53]
+    printf("\n  [Codificacao] C = M^E mod n (Passo a passo)\n");
     for (int i = 0; i < num_blocks; i++) {
         lli M = numeric_blocks[i];
         printf("\n  Bloco M=%lld. Criptografando...\n", M);
@@ -289,7 +286,7 @@ void run_rsa_system() {
     }
 
     // 3.3 Decodificação (Descriptografia)
-    printf("\n  [Decodificacao] M = C^D mod n (Passo a passo)\n"); [cite: 53]
+    printf("\n  [Decodificacao] M = C^D mod n (Passo a passo)\n");
     for (int i = 0; i < num_blocks; i++) {
         lli C = encrypted_blocks[i];
         printf("\n  Bloco C=%lld. Descriptografando...\n", C);
