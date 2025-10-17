@@ -63,6 +63,7 @@ float Razao_de_Eficiencia(int N) {
 
 int main() {
     int numero = 0;
+    puts("Codigo feito por:\n Matheus Eiki Kimura - 241025327\n Joao Pedro Morais Da Cunha - 241011161\n");
     printf("=========Calculadora de Razão de Eficiência=========\n");
     printf("Digite o valor do número que você quer encontrar a razão de eficiência: ");
     if (scanf("%d", &numero) != 1 || numero <= 1 || numero > 105) {

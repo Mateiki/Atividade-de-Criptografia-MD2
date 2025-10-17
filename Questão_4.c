@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h> // Para a função abs() se necessário, embora o operador - funcione
+#include <string.h> // Não estritamente necessário para este código, mas bom para C
 
 #ifdef WIN32
 #include <windows.h>
@@ -7,11 +9,11 @@
 // Função para calcular o máximo divisor comum (MDC) com exibição dos passos
 int mdcComPassos(int a, int b) {
     int resto;
-    while (b != 0) {
+    while (b != 0) { // [1] b != 0
         resto = a % b;
         printf("Algoritmo de Euclides: %d mod %d = %d\n", a, b, resto);
         a = b;
-        b = resto;
+        b = resto; // [2] resto
     }
     return a;
 }
@@ -22,8 +24,15 @@ int inversoModular(int a, int m) {
     int x0 = 0, x1 = 1;
     int A = a, B = m;
 
-    // Exibe os passos do MDC
-    mdcComPassos(a, m);
+    // A função mdcComPassos já foi implementada e deve ser chamada aqui:
+    if (mdcComPassos(a, m) != 1) { // [3] mdcComPassos
+        printf("\nErro: O inverso modular nao existe, pois mdc(%d, %d) != 1.\n", a, m);
+        return -1; // Sinaliza que o inverso não existe
+    }
+
+    // Reinicia 'a' e 'm' para o Algoritmo Estendido
+    a = A;
+    m = B; 
 
     while (m != 0) {
         q = a / m;
@@ -36,17 +45,20 @@ int inversoModular(int a, int m) {
         x1 = t;
     }
     if (x1 < 0)
-        x1 += m0;
+        x1 += m0; // [4] x1
+    
     printf("\nSubstituindo, temos que o inverso de %d em %d é %d.\n\n", A, B, x1);
     return x1;
 }
 
 // Função para potência modular rápida
 int powMod(int base, int exp, int mod) {
+    // Usamos 'long long' para garantir que (res * b) e (b * b) não causem overflow
     long long res = 1;
     long long b = base % mod;
+    
     while (exp > 0) {
-        if (exp & 1)
+        if (exp & 1) // [5] exp & 1
             res = (res * b) % mod;
         b = (b * b) % mod;
         exp >>= 1;
@@ -73,14 +85,29 @@ int main() {
     scanf("%d", &n1);
     printf("\n");
 
-    int inverso = inversoModular(G, Zn);
+    // L72: Chamada do inversoModular, G é a base, Zn é o módulo
+    int inverso = inversoModular(G, Zn); // [6] inversoModular
+
+    // Verifica se o inverso existe
+    if (inverso == -1) {
+        printf("A divisao modular nao pode ser realizada.\n");
+        return 1;
+    }
+
+    // Calculo da divisao modular: a = (H * inverso) % Zn
     int a = (H * inverso) % Zn;
 
     printf("Fazendo a multiplicação modular: %d * %d mod %d = %d\n", H, inverso, Zn, a);
     printf("Sendo %d o inverso de %d.\n", inverso, G);
 
-    int resultado = powMod(a, x, n1);
-    printf("Valor final da congruência: %d\n", resultado);
+    // O problema exige que o expoente seja reduzido pelo Teorema de Fermat/Euler.
+    // Como n1=13 é primo, usamos Fermat: novo_exp = x mod (n1 - 1).
+    int novo_exp = x % (n1 - 1);
+    
+    // Chamada correta para a potência modular: powMod(base, novo_exp, mod)
+    int resultado = powMod(a, novo_exp, n1); // [7] powMod(a, novo_exp, n1)
+
+    printf("Valor final da congruencia: %d\n", resultado);
 
     return 0;
 }
